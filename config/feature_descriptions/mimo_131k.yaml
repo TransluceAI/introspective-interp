@@ -1,0 +1,80 @@
+# MiMo-7B Feature Descriptions Configuration
+# Uses MiMo-7B as the explainer model for SAE feature descriptions
+
+target_model_path: meta-llama/Llama-3.1-8B
+model_path: XiaomiMiMo/MiMo-7B-RL
+trust_remote_code: true
+
+# MiMo-specific settings
+# MiMo recommends empty system prompt and temperature 0.6
+generation_config:
+  temperature: 0.6
+  do_sample: true
+
+continuous_tokens:
+  "begin_continuous": "<|reserved_special_token_0|>"
+  "end_continuous": "<|reserved_special_token_1|>"
+  "continuous_rep": "<|reserved_special_token_2|>"
+
+output_dir: /data/artifacts/mimo/checkpoints/mimo_feature_descriptions
+cache_dir: /data/artifacts/mimo/cache/
+
+use_embed_proj: true
+
+train:
+  num_samples: 1000000000
+  batch_size: 32  # Reduced for 7B model memory
+  save_strategy: steps
+  save_total_limit: 10
+  save_steps: 8000
+  learning_rate: !!float 5e-5
+  num_epochs: 100
+  eval_strategy: steps
+  eval_steps: 8000
+  peft_lora: false
+  lora_r: 128
+  dataset: ["sae_explanations"]
+  evaluation_type: mixed
+  explanation_dir: /data/artifacts/bzl/autointerp/datasets/SAE_feature_explanations_llama3.1_8b/
+  split_keys: explanations/{split}_layer_feature_idxs.pkl
+  split_explanations_data: explanations/{split}_explanations.pkl
+  sae_save_path: features
+  layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+  bf16: true
+  tasks:
+    features_explain:
+      question_types:
+        generative_explanation:
+          evaluation_type: semantic_similarity
+          weight: 1.0
+          layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+          prompts:
+            - messages:
+                - role: "user"
+                  content: "Generate a description of this feature at layer {layer}: {begin_continuous}{feature}{end_continuous}"
+                - role: "assistant"
+                  content: ""
+            - messages:
+                - role: "user"
+                  content: "What does {begin_continuous}{feature}{end_continuous} encode at layer {layer}?"
+                - role: "assistant"
+                  content: ""
+            - messages:
+                - role: "user"
+                  content: "{begin_continuous}{feature}{end_continuous} activates at layer {layer} for inputs with the following features:"
+                - role: "assistant"
+            - messages:
+                - role: "user"
+                  content: "What does {begin_continuous}{feature}{end_continuous} mean at layer {layer}?"
+                - role: "assistant"
+            - messages:
+                - role: "user"
+                  content: "Layer {layer}, {begin_continuous}{feature}{end_continuous} means?"
+                - role: "assistant"
+
+test:
+  batch_size: 32
+  tasks:
+    features_explain:
+      num_samples: 1600
+      evaluation_type: semantic_similarity

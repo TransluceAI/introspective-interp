@@ -1,0 +1,80 @@
+# MiMo-7B Activation Patching Configuration
+# Uses MiMo-7B for activation patching predictions
+
+target_model_path: XiaomiMiMo/MiMo-7B-RL
+model_path: XiaomiMiMo/MiMo-7B-RL
+trust_remote_code: true
+
+# MiMo-specific settings
+generation_config:
+  temperature: 0.6
+  do_sample: true
+
+continuous_tokens:
+  "begin_continuous": "<|reserved_special_token_0|>"
+  "end_continuous": "<|reserved_special_token_1|>"
+  "continuous_rep": "<|reserved_special_token_2|>"
+
+output_dir: /data/artifacts/mimo/checkpoints/mimo_act_patch_cf
+cache_dir: /data/artifacts/mimo/cache/
+
+train:
+  num_samples: 100000000
+  batch_size: 16  # Reduced for 7B model memory
+  save_strategy: steps
+  save_total_limit: 10
+  save_steps: 2000
+  learning_rate: !!float 5e-5
+  num_epochs: 20
+  eval_strategy: steps
+  eval_steps: 2000
+  peft_lora: true
+  lora_r: 128
+  dataset: ["counterfact"]
+  evaluation_type: mixed
+  intervention_path: Transluce/act_patch_mimo_7b_counterfact
+  hf_data_cache_dir: /data/artifacts/mimo/datasets/
+  # MiMo-7B has 32 layers (similar to Llama-3.1-8B)
+  layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+  bf16: true
+  tasks:
+    act_patch:
+      num_samples: 100000000
+      question_types:
+        generative_explanation:
+          evaluation_type: exact_match
+          weight: 1.0
+          prompts:
+            - messages:
+              - role: "user"
+                content: "If feature {begin_continuous}{feature}{end_continuous} at layer {layer} is added to tokens {tokens} when processing the text <<<{input}>>>, how would the output change?"
+              - role: "assistant"
+                content: ""
+            - messages:
+              - role: "user"
+                content: "When feature {begin_continuous}{feature}{end_continuous} at layer {layer} is added at tokens {tokens} in the input <<<{input}>>>, what happens to the model's output?"
+              - role: "assistant"
+                content: ""
+            - messages:
+              - role: "user"
+                content: "Consider the input text: <<<{input}>>>. If we steer layer {layer} towards feature {begin_continuous}{feature}{end_continuous} at tokens {tokens}, how does this affect the generated continuation?"
+              - role: "assistant"
+                content: ""
+            - messages:
+              - role: "user"
+                content: "Given the text <<<{input}>>>, what would be the effect on the output if feature {begin_continuous}{feature}{end_continuous} at layer {layer} is added to tokens {tokens}?"
+              - role: "assistant"
+                content: ""
+            - messages:
+              - role: "user"
+                content: "If we steer towards feature {begin_continuous}{feature}{end_continuous} at layer {layer} and tokens {tokens} when processing <<<{input}>>>, how would the model's response differ?"
+              - role: "assistant"
+                content: ""
+
+test:
+  batch_size: 8
+  tasks:
+    act_patch:
+      num_samples: 3200
+      intervention_path: Transluce/act_patch_mimo_7b_counterfact
+      evaluation_type: exact_match

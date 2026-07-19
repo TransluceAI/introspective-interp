@@ -1,0 +1,61 @@
+# MiMo-7B Input Ablation Configuration
+# Uses MiMo-7B for predicting input ablation effects
+
+target_model_path: XiaomiMiMo/MiMo-7B-RL
+model_path: XiaomiMiMo/MiMo-7B-RL
+trust_remote_code: true
+
+# MiMo-specific settings - empty system prompt recommended
+generation_config:
+  temperature: 0.6
+  do_sample: true
+
+continuous_tokens:
+  "begin_continuous": "<|reserved_special_token_0|>"
+  "end_continuous": "<|reserved_special_token_1|>"
+  "continuous_rep": "<|reserved_special_token_2|>"
+
+output_dir: /data/artifacts/mimo/checkpoints/mimo_input_ablation
+cache_dir: /data/artifacts/mimo/cache/
+
+use_embed_proj: false
+
+train:
+  num_samples: 100000000
+  batch_size: 8
+  save_strategy: steps
+  save_total_limit: 10
+  save_steps: 2000
+  learning_rate: !!float 5e-5
+  num_epochs: 20
+  eval_strategy: steps
+  eval_steps: 2000
+  peft_lora: false
+  lora_r: 128
+  dataset: ["hint"]
+  evaluation_type: mixed
+  hint_path: Transluce/input_ablation_mimo_7b_mmlu_hint
+  hf_data_cache_dir: /data/artifacts/mimo/datasets/
+  layers: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+  bf16: true
+  tasks:
+    hint_attribution:
+      num_samples: 100000000
+      weight: 1.0
+      self_consistency: false
+      evaluation_type: exact_match
+      question_types:
+        generative_explanation:
+          evaluation_type: exact_match
+          prompts:
+            - messages:
+              - role: "user"
+                content: "{user_prompt}\n\nIf the hint were removed how would the assistant answer change?"
+              - role: "assistant"
+                content: ""
+
+test:
+  batch_size: 8
+  tasks:
+    hint_attribution:
+      num_samples: 3200

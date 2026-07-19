@@ -7,6 +7,7 @@ from model.continuous_gemma3 import ContinuousGemma3ForCausalLM
 from model.continuous_gemma2 import ContinuousGemma2ForCausalLM
 from model.continuous_qwen import ContinuousQwen3ForCausalLM
 from model.continuous_llama import ContinuousLlama
+from model.continuous_mimo import ContinuousMiMo
 from model.nearest_neighbor import NearestNeighborModel
 from model.continuous_peft import ContinuousPeft
 from model.self_explanations import SelfExplanationsModel
@@ -27,6 +28,7 @@ MODEL_TYPE_TO_VANILLA_MODEL_MAPPING = {
     "gemma3": ContinuousGemma3ForCausalLM,
     "gemma2": ContinuousGemma2ForCausalLM,
     "qwen3": ContinuousQwen3ForCausalLM,
+    "mimo": ContinuousMiMo,
     "nearest_neighbor": NearestNeighborModel,
     "self_explanations": SelfExplanationsModel,
 }
@@ -97,6 +99,14 @@ def load_models(
         "meta-llama/Meta-Llama-3-8B",
     ]:
         model_type = "llama"
+    elif predictor_model_type in [
+        "XiaomiMiMo/MiMo-7B-Base",
+        "XiaomiMiMo/MiMo-7B-RL",
+        "XiaomiMiMo/MiMo-7B-RL-0530",
+        "XiaomiMiMo/MiMo-7B-SFT",
+        "XiaomiMiMo/MiMo-7B-RL-Zero",
+    ] or "MiMo" in predictor_model_type:
+        model_type = "mimo"
     else:
         raise ValueError(f"Model {predictor_model_type} not supported for autointerp")
 
