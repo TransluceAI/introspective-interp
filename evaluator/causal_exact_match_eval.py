@@ -423,10 +423,10 @@ class CausalExactMatchEvaluator(BaseEvaluator):
                 pred_is_changed and exp_is_changed
             )
             self.metrics["is_changed_matrix"][1][0] += int(
-                not pred_is_changed and exp_is_changed
+                pred_is_changed and not exp_is_changed
             )
             self.metrics["is_changed_matrix"][0][1] += int(
-                pred_is_changed and not exp_is_changed
+                not pred_is_changed and exp_is_changed
             )
             self.metrics["is_changed_matrix"][1][1] += int(
                 not pred_is_changed and not exp_is_changed
